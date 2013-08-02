@@ -5,8 +5,6 @@ import sys
 import random
 # from PIL import Image, ImageDraw, ImageFont
 
-# sys.setrecursionlimit(10000)
-
 
 def length(point1, point2):
     return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
@@ -49,6 +47,7 @@ def read_points(inputData):
 
     return points, point_count
 
+
 def tour_length(points, solution):
     # calculate the length of the tour
     obj = length(points[solution[-1]], points[solution[0]])
@@ -79,6 +78,7 @@ def all_pairs(size, shuffle=random.shuffle):
     for i in r1:
         for j in r2:
             yield (i,j)
+
 
 # def swapped_cities(tour):
 #     '''generator to create all possible variations
@@ -154,6 +154,7 @@ class ObjectiveFunction:
         return score
 
 
+# main function of simulated anneal
 def anneal(init_function,move_operator,objective_function,max_evaluations,start_temp,alpha):
 
     # wrap the objective function (so we record the best)
