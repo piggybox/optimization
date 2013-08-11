@@ -1,10 +1,7 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 from pulp import *
 import uuid
 
 def solveIt(inputData):
-    # Modify this code to run your optimization algorithm
 
     # parse the input
     lines = inputData.split('\n')

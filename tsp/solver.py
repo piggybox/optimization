@@ -1,16 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import os
 from subprocess import Popen, PIPE
 import uuid
 
 
 def solveIt(inputData):
-
-    # Writes the inputData to a temporay file
-
-
     tmpFileName = str(uuid.uuid4()) + ".data"
     tmpFile = open(tmpFileName, 'w')
     tmpFile.write(inputData)

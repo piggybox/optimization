@@ -1,16 +1,14 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import math
+
 
 def length(customer1, customer2):
     return math.sqrt((customer1[1] - customer2[1])**2 + (customer1[2] - customer2[2])**2)
 
+
 def solveIt(inputData):
-    # Modify this code to run your optimization algorithm
 
     # parse the input
-    lines = inputData.split('\n')
+    lines = inputData.split('\n')  
 
     parts = lines[0].split()
     customerCount = int(parts[0])
