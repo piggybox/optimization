@@ -1,6 +1,9 @@
 import math
 from sklearn import cluster
 from pulp import *
+import uuid
+from subprocess import Popen, PIPE
+import collections
 
 
 def distance(customer1, customer2):
@@ -15,14 +18,34 @@ def overload(customers, tour, capacity):
     return sum([customers[cid][0] for cid in tour]) - capacity
 
 
-def distance_matrix(customers):
-    matrix = {}
-    # assume i < j
-    for i in range(len(customers)):
-        for j in range(i + 1, len(customers)):
-                matrix[i, j] = length(customers[i], customers[j])
+def tsp(v, customers):
+    # print v
+    xy = [str(customers[c][1]) + " " + str(customers[c][2]) for c in v]
+    warehouse = " ".join(map(str, [customers[0][1], customers[0][2]]))
+    inputData = str(len(v) + 1) + "\n" + warehouse + "\n" + "\n".join(xy)
 
-    return matrix 
+    tmpFileName = str(uuid.uuid4()) + ".data"
+    tmpFile = open(tmpFileName, 'w')
+    tmpFile.write(inputData)
+    tmpFile.close()
+
+    process = Popen(['pypy', 'tsp-solver.py', tmpFileName], stdout=PIPE)
+    (stdout, stderr) = process.communicate()
+
+    # removes the temporay file
+
+    os.remove(tmpFileName)
+    raw_result = map(int, stdout.strip().split())
+    # print raw_result
+    # adjust result to start from the warehouse 0
+    base = raw_result.index(0)
+    # rotate 0 to the start and get the rest
+    adjusted = collections.deque(raw_result)
+    adjusted.rotate(-1 * base)
+    # print adjusted
+    result = [v[i - 1] for i in list(adjusted)[1:]]
+    # print result
+    return result
 
 
 def solveIt(inputData):
@@ -39,20 +62,17 @@ def solveIt(inputData):
         # space, x, y
         customers.append((int(parts[0]), float(parts[1]),float(parts[2])))
 
-
     # use K-mean to get possible cluster centers for each vehicle
-    kmcluster = cluster.KMeans(n_clusters=vehicleCount, init='random')
+    kmcluster = cluster.KMeans(n_clusters=vehicleCount) #, init='random')
     kmcluster.fit([(x,y) for space, x, y in customers[1:]]) # exclude the warehouse at 0
 
-
     # group customers around cluster centers and balance vehicle capacity
-    print kmcluster.cluster_centers_
-
     customer_list = range(1, customerCount)
     customer_allocation = LpVariable.dicts("ca", [(c, kc) for c in customer_list for kc in range(vehicleCount)], lowBound=0, upBound=1, cat=LpInteger)
+    # total distance for customers each assigned to a cluster center
     transporation_cost = lpSum([distance2center(customers[c], kmcluster.cluster_centers_[kc]) * customer_allocation[c, kc] for c in customer_list for kc in range(vehicleCount)])
 
-    prob = LpProblem("customer allocation", LpMinimize)
+    prob = LpProblem("customer-allocation", LpMinimize)
     prob += transporation_cost
 
     # constraints
@@ -64,17 +84,22 @@ def solveIt(inputData):
         # total customer orders is bound by vehicle capacity
         prob += (lpSum([customer_allocation[c, kc] * customers[c][0] for c in customer_list]) <= vehicleCapacity)
 
-    prob.writeLP("customer_allocation.lp")
-    prob.solve()
-    print value(prob.objective)
+    templpfile = "customer_allocation_" + str(uuid.uuid4()) + ".lp"
+    prob.writeLP(templpfile)
+    prob.solve(COIN(maxSeconds=60*10))
+    os.remove(templpfile)
+    # print value(prob.objective)
 
     # assign to vehicle tour
-
     vehicleTours = [[] for i in range(vehicleCount)]
     for kc in range(vehicleCount):
         for c in customer_list:
             if customer_allocation[c, kc].varValue == 1:
                 vehicleTours[kc].append(c)
+
+    # optimize each tour using tsp solver
+    for v in vehicleTours:
+        v = tsp(v, customers)
 
 
     # calculate the cost of the solution; for each vehicle the length of the route
